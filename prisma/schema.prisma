@@ -22,6 +22,7 @@ model Movement {
   id   String @id @default(uuid())
   name String
   sets Set[]
+  isBodyWeight Boolean @default(false)
 }
 
 model Workout {
