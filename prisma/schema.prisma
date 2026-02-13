@@ -15,6 +15,7 @@ model User {
   updatedAt DateTime  @updatedAt
   password  String
   workouts  Workout[]
+  weightTrackings WeightTracking[]
 }
 
 model Movement {
@@ -39,4 +40,13 @@ model Set {
   movement   Movement @relation(fields: [movementId], references: [id])
   reps       Int
   weight     Int
+}
+
+
+model WeightTracking {
+  id          String    @id @default(uuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id])
+  weight      Float
+  createdAt   DateTime  @default(now())
 }
