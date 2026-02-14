@@ -81,7 +81,7 @@ export const signInServerFn = createServerFn({ method: "POST" })
       where: { email },
     });
 
-    if (!user || user.password !== password) {
+    if (!user || !(await Bun.password.verify(password, user.password))) {
       return { success: false as const, error: "Invalid email or password" };
     }
 
@@ -108,8 +108,10 @@ export const createAccountServerFn = createServerFn({ method: "POST" })
       return { success: false as const, error: "An account with this email already exists" };
     }
 
+    const hashedPassword = await Bun.password.hash(password);
+
     const user = await prisma.user.create({
-      data: { email, name, password },
+      data: { email, name, password: hashedPassword },
     });
 
     setSessionCookie(user.id);

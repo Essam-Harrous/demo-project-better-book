@@ -17,7 +17,7 @@ async function main() {
       data: {
         email: "test@example.com",
         name: "Test User",
-        password: "password123",
+        password: await Bun.password.hash("password123"),
       },
     });
     console.log("✅ Created test user:", user.email);
