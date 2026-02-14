@@ -50,7 +50,7 @@ function RouteComponent() {
           </a>
         </div>
       </nav>
-      <main className="flex-1 p-6">
+      <main className="flex-1 p-6 h-[100vh]">
         <Outlet />
       </main>
     </div>

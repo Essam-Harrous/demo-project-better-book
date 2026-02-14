@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,6 +10,8 @@ import {
 import { Plus, Trash2 } from "lucide-react";
 import { useSuspenseQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { weightTrackingHistoryQueryOptions } from "./-queries/weight-tracking-history";
+import { Chart } from "react-charts";
+import type { AxisOptions } from "react-charts";
 
 export const Route = createFileRoute("/__index/_layout/weight-tracking/")({
   loader: async ({ context }) => {
@@ -17,6 +19,11 @@ export const Route = createFileRoute("/__index/_layout/weight-tracking/")({
   },
   component: WeightTrackingPage,
 });
+
+type WeightDatum = {
+  date: Date;
+  weight: number;
+};
 
 function WeightTrackingPage() {
   const queryClient = useQueryClient();
@@ -48,8 +55,93 @@ function WeightTrackingPage() {
 
   const currentWeight = weightHistory?.[0]?.weight;
 
+  // Prepare chart data: last 15 days, one point per day (last entry of the day)
+  // Days with no entry carry forward the previous day's weight
+  const chartData = useMemo(() => {
+    // Helper to get a consistent local YYYY-MM-DD key
+    const toLocalDayKey = (date: Date) =>
+      `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+
+    const now = new Date();
+    const fifteenDaysAgo = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 14);
+
+    // Group entries by local date, keep the last entry per day
+    const byDay = new Map<string, number>();
+    weightHistory
+      .filter((entry) => new Date(entry.createdAt) >= fifteenDaysAgo)
+      .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
+      .forEach((entry) => {
+        const dayKey = toLocalDayKey(new Date(entry.createdAt));
+        byDay.set(dayKey, entry.weight);
+      });
+
+    // Build array for each of the last 15 days, carrying forward the last known weight
+    const points: WeightDatum[] = [];
+    let lastWeight: number | null = null;
+
+    // Try to find a weight before the 15-day window to seed the carry-forward
+    const olderEntry = weightHistory
+      .filter((entry) => new Date(entry.createdAt) < fifteenDaysAgo)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
+    if (olderEntry) {
+      lastWeight = olderEntry.weight;
+    }
+
+    for (let i = 0; i < 15; i++) {
+      const d = new Date(fifteenDaysAgo.getFullYear(), fifteenDaysAgo.getMonth(), fifteenDaysAgo.getDate() + i);
+      const dayKey = toLocalDayKey(d);
+
+      if (byDay.has(dayKey)) {
+        lastWeight = byDay.get(dayKey)!;
+      }
+
+      if (lastWeight !== null) {
+        points.push({ date: d, weight: lastWeight });
+      }
+    }
+
+    return [
+      {
+        label: "Weight",
+        data: points,
+      },
+    ];
+  }, [weightHistory]);
+
+  const primaryAxis = useMemo(
+    (): AxisOptions<WeightDatum> => ({
+      getValue: (datum) => datum.date,
+      hardMin: new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDate() - 14),
+      hardMax: new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDate(), 23, 59, 59),
+      formatters: {
+        scale: (value: Date | null) =>
+          value ? value.toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "",
+      },
+    }),
+    [],
+  );
+
+  const maxWeight = useMemo(() => {
+    const weights = chartData[0].data.map((d) => d.weight);
+    return weights.length > 0 ? Math.max(...weights) : 100;
+  }, [chartData]);
+
+  const secondaryAxes = useMemo(
+    (): AxisOptions<WeightDatum>[] => [
+      {
+        getValue: (datum) => datum.weight,
+        elementType: "line",
+        hardMin: 0,
+        hardMax: maxWeight + 10,
+      },
+    ],
+    [maxWeight],
+  );
+
+  const hasChartData = chartData[0].data.length > 0;
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 overflow-y-auto h-full">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold text-slate-900">Weight Tracking</h1>
       </div>
@@ -94,6 +186,30 @@ function WeightTrackingPage() {
           </CardContent>
         </Card>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Latest Weight Updates</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {hasChartData ? (
+            <div style={{ height: "300px" }}>
+              <Chart
+                options={{
+                  data: chartData,
+                  primaryAxis,
+                  secondaryAxes,
+                  defaultColors: ["oklch(37.8% 0.077 168.94)"],
+                }}
+              />
+            </div>
+          ) : (
+            <p className="text-slate-500 text-center py-8">
+              No data in the last 15 days. Add some entries!
+            </p>
+          )}
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
