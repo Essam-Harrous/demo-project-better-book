@@ -54,18 +54,13 @@ function WeightTrackingPage() {
   };
 
   const currentWeight = weightHistory?.[0]?.weight;
-
-  // Prepare chart data: last 15 days, one point per day (last entry of the day)
-  // Days with no entry carry forward the previous day's weight
   const chartData = useMemo(() => {
-    // Helper to get a consistent local YYYY-MM-DD key
     const toLocalDayKey = (date: Date) =>
       `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 
     const now = new Date();
     const fifteenDaysAgo = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 14);
 
-    // Group entries by local date, keep the last entry per day
     const byDay = new Map<string, number>();
     weightHistory
       .filter((entry) => new Date(entry.createdAt) >= fifteenDaysAgo)
@@ -75,11 +70,9 @@ function WeightTrackingPage() {
         byDay.set(dayKey, entry.weight);
       });
 
-    // Build array for each of the last 15 days, carrying forward the last known weight
     const points: WeightDatum[] = [];
     let lastWeight: number | null = null;
 
-    // Try to find a weight before the 15-day window to seed the carry-forward
     const olderEntry = weightHistory
       .filter((entry) => new Date(entry.createdAt) < fifteenDaysAgo)
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
@@ -121,9 +114,15 @@ function WeightTrackingPage() {
     [],
   );
 
-  const maxWeight = useMemo(() => {
+  const weightRange = useMemo(() => {
     const weights = chartData[0].data.map((d) => d.weight);
-    return weights.length > 0 ? Math.max(...weights) : 100;
+    if (weights.length === 0) return { min: 0, max: 100 };
+    const min = Math.min(...weights);
+    const max = Math.max(...weights);
+    return {
+      min: Math.floor(min * 0.8),
+      max: Math.ceil(max * 1.2),
+    };
   }, [chartData]);
 
   const secondaryAxes = useMemo(
@@ -131,17 +130,17 @@ function WeightTrackingPage() {
       {
         getValue: (datum) => datum.weight,
         elementType: "line",
-        hardMin: 0,
-        hardMax: maxWeight + 10,
+        hardMin: weightRange.min,
+        hardMax: weightRange.max,
       },
     ],
-    [maxWeight],
+    [weightRange],
   );
 
   const hasChartData = chartData[0].data.length > 0;
 
   return (
-    <div className="space-y-6 overflow-y-auto h-full">
+    <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold text-slate-900">Weight Tracking</h1>
       </div>
