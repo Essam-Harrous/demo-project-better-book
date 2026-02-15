@@ -1,5 +1,6 @@
 import { PrismaClient } from "./generated/client/client";
 import { PrismaPg } from "@prisma/adapter-pg";
+import argon2 from "argon2";
 
 const DATABASE_URL =
   process.env.DATABASE_URL ?? "postgresql://postgres:postgres@localhost:5432/demo_project";
@@ -23,7 +24,7 @@ async function main() {
       continue;
     }
 
-    const hashedPassword = await Bun.password.hash(user.password);
+    const hashedPassword = await argon2.hash(user.password);
     await prisma.user.update({
       where: { id: user.id },
       data: { password: hashedPassword },

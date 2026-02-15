@@ -1,10 +1,19 @@
 import crypto from "node:crypto";
+import argon2 from "argon2";
 import { redirect } from "@tanstack/react-router";
 import { getCookie, setCookie, deleteCookie } from "@tanstack/react-start/server";
 import { createMiddleware, createServerFn } from "@tanstack/react-start";
 import { sessionCookieName } from "./auth.consts";
 import { getServerSidePrismaClient } from "./db.server";
 import { z } from "zod";
+
+async function hashPassword(password: string): Promise<string> {
+  return argon2.hash(password);
+}
+
+async function verifyPassword(password: string, hash: string): Promise<boolean> {
+  return argon2.verify(hash, password);
+}
 
 // In production, use a proper secret from environment variables
 const COOKIE_SECRET = process.env.COOKIE_SECRET || "dev-secret-change-in-production";
@@ -81,7 +90,7 @@ export const signInServerFn = createServerFn({ method: "POST" })
       where: { email },
     });
 
-    if (!user || !(await Bun.password.verify(password, user.password))) {
+    if (!user || !(await verifyPassword(password, user.password))) {
       return { success: false as const, error: "Invalid email or password" };
     }
 
@@ -108,7 +117,7 @@ export const createAccountServerFn = createServerFn({ method: "POST" })
       return { success: false as const, error: "An account with this email already exists" };
     }
 
-    const hashedPassword = await Bun.password.hash(password);
+    const hashedPassword = await hashPassword(password);
 
     const user = await prisma.user.create({
       data: { email, name, password: hashedPassword },
