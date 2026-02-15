@@ -7,6 +7,11 @@ datasource db {
   provider = "postgresql"
 }
 
+enum Role {
+  USER
+  ADMIN
+}
+
 model User {
   id        String    @id @default(uuid())
   email     String    @unique
@@ -14,14 +19,29 @@ model User {
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   password  String
-  workouts  Workout[]
+  workouts        Workout[]
   weightTrackings WeightTracking[]
   nutritionLogs   NutritionLog[]
+  role            Role             @default(USER)
+  stats           UserStats?
+}
+
+model UserStats {
+  userId             String   @id
+  user               User     @relation(fields: [userId], references: [id])
+  totalWorkouts      Int      @default(0)
+  totalWeightEntries Int      @default(0)
+  currentStreak      Int      @default(0)
+  lastActiveAt       DateTime @default(now())
+
+  @@index([totalWorkouts(sort: Desc)])
+  @@index([currentStreak(sort: Desc)])
+  @@index([lastActiveAt(sort: Desc)])
 }
 
 model Movement {
   id   String @id @default(uuid())
-  name String
+  name String @unique
   sets Set[]
   isBodyWeight Boolean @default(false)
 }

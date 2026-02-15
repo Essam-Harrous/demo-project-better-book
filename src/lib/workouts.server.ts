@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { getServerSidePrismaClient } from "@/lib/db.server";
 import { authMiddleware } from "@/lib/auth.server";
+import { updateUserStats } from "@/lib/admin.server";
 import { z } from "zod";
 
 export const createWorkoutServerFn = createServerFn({ method: "POST" })
@@ -46,6 +47,10 @@ export const completeWorkoutServerFn = createServerFn({ method: "POST" })
       where: { id: workout.id },
       data: { completedAt: new Date() },
     });
+    // Update stats (fire and forget? or await?)
+    // Ideally await to ensure consistency, but failing stats update shouldn't fail workout completion?
+    // We'll await for simplicity.
+    await updateUserStats({ data: context.user.id });
     return { success: true };
   });
 
@@ -124,5 +129,6 @@ export const deleteWorkoutsServerFn = createServerFn({ method: "POST" })
     await prisma.workout.deleteMany({
       where: { id: { in: data.workoutIds }, userId: context.user.id },
     });
+    await updateUserStats({ data: context.user.id });
     return { success: true };
   });

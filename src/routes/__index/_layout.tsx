@@ -1,11 +1,14 @@
 import { createFileRoute, Link, Outlet, redirect } from "@tanstack/react-router";
-import { Dumbbell, History, BicepsFlexed, WeightTilde, Apple, User, LogOut } from "lucide-react";
+import { Dumbbell, History, BicepsFlexed, WeightTilde, Apple, User, LogOut, LayoutDashboard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/__index/_layout")({
   component: RouteComponent,
-  beforeLoad: ({ context }) => {
+  beforeLoad: ({ context, location }) => {
     if (!context.user) throw redirect({ to: "/sign-in" });
+    if (context.user.role === "ADMIN" && location.pathname === "/") {
+      throw redirect({ to: "/admin" });
+    }
     return { user: context.user! };
   },
 });
@@ -18,14 +21,20 @@ const navItems = [
   { to: "/nutrition", label: "Nutrition", icon: Apple },
 ] as const;
 
+const adminNavItems = [
+  { to: "/admin", label: "Dashboard", icon: LayoutDashboard },
+] as const;
+
 function RouteComponent() {
   const { user } = Route.useRouteContext();
+  const items = user.role === "ADMIN" ? adminNavItems : navItems;
+
   return (
     <div className="min-h-screen flex bg-slate-50">
       <nav className="w-64 bg-white border-r border-slate-200 p-4 flex flex-col">
         <img src="/wordmark.svg" alt="Logo" className="h-6 mb-8" />
         <div className="flex flex-col gap-1 flex-1">
-          {navItems.map(({ to, label, icon: Icon }) => (
+          {items.map(({ to, label, icon: Icon }) => (
             <Link
               key={to}
               to={to}

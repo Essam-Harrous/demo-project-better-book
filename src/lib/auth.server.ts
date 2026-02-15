@@ -103,7 +103,7 @@ export const signInServerFn = createServerFn({ method: "POST" })
 
     setSessionCookie(user.id);
 
-    return { success: true as const };
+    return { success: true as const, user: { role: user.role } };
   });
 
 /**

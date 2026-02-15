@@ -40,7 +40,11 @@ function SignInPage() {
     try {
       const result = await signInServerFn({ data: { email, password } });
       if (result.success) {
-        router.navigate({ to: "/" });
+        if (result.user.role === "ADMIN") {
+          router.navigate({ to: "/admin" });
+        } else {
+          router.navigate({ to: "/" });
+        }
       } else {
         setError(result.error || "Sign in failed");
       }
