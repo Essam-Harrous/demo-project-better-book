@@ -16,6 +16,7 @@ model User {
   password  String
   workouts  Workout[]
   weightTrackings WeightTracking[]
+  nutritionLogs   NutritionLog[]
 }
 
 model Movement {
@@ -50,4 +51,17 @@ model WeightTracking {
   user        User      @relation(fields: [userId], references: [id])
   weight      Float
   createdAt   DateTime  @default(now())
+}
+
+model NutritionLog {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  name      String
+  calories  Int
+  protein   Int      // in grams
+  carbs     Int      // in grams
+  fats      Int      // in grams
+  date      DateTime @default(now())
+  createdAt DateTime @default(now())
 }

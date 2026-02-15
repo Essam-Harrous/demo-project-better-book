@@ -51,6 +51,9 @@ export async function deleteTestAccount(email: string): Promise<void> {
     await prisma.weightTracking.deleteMany({
       where: { userId: user.id },
     });
+    await prisma.nutritionLog.deleteMany({
+      where: { userId: user.id },
+    });
     await prisma.user.delete({
       where: { id: user.id },
     });
