@@ -2,10 +2,20 @@ import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { createMovementServerFn } from "@/lib/movements.server";
+import { createMovementServerFn, deleteMovementServerFn } from "@/lib/movements.server";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogFooter,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { useSuspenseQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { movementsQueryOptions } from "./-queries/movements";
+import { Trash2, AlertTriangle } from "lucide-react";
+import { toast } from "react-toastify";
 
 export const Route = createFileRoute("/__index/_layout/movements/")({
   loader: async ({ context }) => {
@@ -20,6 +30,15 @@ function MovementsPage() {
   const [name, setName] = useState("");
   const [isBodyWeight, setIsBodyWeight] = useState(false);
 
+  // Delete confirmation dialog state
+  const [deleteDialog, setDeleteDialog] = useState<{
+    open: boolean;
+    movementId: string;
+    movementName: string;
+    setCount: number;
+    workoutCount: number;
+  }>({ open: false, movementId: "", movementName: "", setCount: 0, workoutCount: 0 });
+
   const createMovementMutation = useMutation({
     mutationFn: (data: { name: string; isBodyWeight: boolean }) =>
       createMovementServerFn({ data }),
@@ -29,6 +48,27 @@ function MovementsPage() {
       setIsBodyWeight(false);
     },
   });
+
+  const deleteMovementMutation = useMutation({
+    mutationFn: (movementId: string) =>
+      deleteMovementServerFn({ data: { movementId, force: true } }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: movementsQueryOptions().queryKey });
+      toast.success(`"${deleteDialog.movementName}" has been deleted`);
+      setDeleteDialog((prev) => ({ ...prev, open: false }));
+    },
+  });
+
+  const handleDelete = async (movementId: string, movementName: string) => {
+    const result = await deleteMovementServerFn({ data: { movementId, force: false } });
+    setDeleteDialog({
+      open: true,
+      movementId,
+      movementName,
+      setCount: result.requiresConfirmation ? result.setCount : 0,
+      workoutCount: result.requiresConfirmation ? result.workoutCount : 0,
+    });
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -80,18 +120,68 @@ function MovementsPage() {
             <ul className="space-y-2">
               {movements.map((movement) => (
                 <li key={movement.id} className="px-3 py-2 bg-slate-50 rounded-lg text-sm font-medium text-slate-700 flex items-center justify-between">
-                  <span>{movement.name}</span>
-                  {movement.isBodyWeight && (
-                    <span className="text-xs bg-primary/10 text-primary font-medium px-2 py-0.5 rounded-full">
-                      Body weight
-                    </span>
-                  )}
+                  <span className="flex items-center gap-2">
+                    {movement.name}
+                    {movement.isBodyWeight && (
+                      <span className="text-xs bg-primary/10 text-primary font-medium px-2 py-0.5 rounded-full">
+                        Body weight
+                      </span>
+                    )}
+                  </span>
+                  <button
+                    onClick={() => handleDelete(movement.id, movement.name)}
+                    disabled={deleteMovementMutation.isPending}
+                    className="p-1 text-slate-400 hover:text-red-500 transition-colors rounded-md hover:bg-red-50 disabled:opacity-50"
+                    aria-label={`Delete ${movement.name}`}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
                 </li>
               ))}
             </ul>
           )}
         </CardContent>
       </Card>
+
+      {/* Delete confirmation dialog */}
+      <Dialog open={deleteDialog.open} onOpenChange={(open) => setDeleteDialog((prev) => ({ ...prev, open }))}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-amber-500" />
+              Delete "{deleteDialog.movementName}"?
+            </DialogTitle>
+            <DialogDescription>
+              {deleteDialog.setCount > 0 ? (
+                <>
+                  This movement is linked to{" "}
+                  <strong>{deleteDialog.setCount} set{deleteDialog.setCount !== 1 ? "s" : ""}</strong>{" "}
+                  across{" "}
+                  <strong>{deleteDialog.workoutCount} workout{deleteDialog.workoutCount !== 1 ? "s" : ""}</strong>.
+                  Deleting it will permanently remove those sets from your workout history.
+                </>
+              ) : (
+                "This action cannot be undone."
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setDeleteDialog((prev) => ({ ...prev, open: false }))}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => deleteMovementMutation.mutate(deleteDialog.movementId)}
+              disabled={deleteMovementMutation.isPending}
+            >
+              {deleteMovementMutation.isPending ? "Deleting..." : "Delete"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

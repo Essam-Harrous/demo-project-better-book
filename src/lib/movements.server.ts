@@ -18,3 +18,28 @@ export const getMovementsServerFn = createServerFn().handler(async () => {
     orderBy: { name: "asc" },
   });
 });
+
+export const deleteMovementServerFn = createServerFn({ method: "POST" })
+  .inputValidator(z.object({ movementId: z.string(), force: z.boolean().default(false) }))
+  .handler(async ({ data }: { data: { movementId: string; force: boolean } }) => {
+    const prisma = await getServerSidePrismaClient();
+
+    const linkedSets = await prisma.set.findMany({
+      where: { movementId: data.movementId },
+      select: { workoutId: true },
+    });
+
+    const setCount = linkedSets.length;
+    const workoutCount = new Set(linkedSets.map((s) => s.workoutId)).size;
+
+    if (!data.force) {
+      // Check-only mode: always return status, never delete
+      return { requiresConfirmation: setCount > 0, setCount, workoutCount } as const;
+    }
+
+    // Cascade: delete linked sets first, then the movement
+    await prisma.set.deleteMany({ where: { movementId: data.movementId } });
+    await prisma.movement.delete({ where: { id: data.movementId } });
+
+    return { success: true } as const;
+  });
