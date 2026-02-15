@@ -32,6 +32,8 @@ model Workout {
   id          String    @id @default(uuid())
   completedAt DateTime?
   sets        Set[]
+
+  @@index([userId, completedAt])
 }
 
 model Set {
@@ -51,6 +53,8 @@ model WeightTracking {
   user        User      @relation(fields: [userId], references: [id])
   weight      Float
   createdAt   DateTime  @default(now())
+
+  @@index([userId, createdAt])
 }
 
 model NutritionLog {
@@ -64,4 +68,6 @@ model NutritionLog {
   fats      Int      // in grams
   date      DateTime @default(now())
   createdAt DateTime @default(now())
+
+  @@index([userId, date])
 }
