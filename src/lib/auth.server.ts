@@ -7,12 +7,19 @@ import { sessionCookieName } from "./auth.consts";
 import { getServerSidePrismaClient } from "./db.server";
 import { z } from "zod";
 
+// Retrieve the pepper from environment, checking for production safety
+const PASSWORD_PEPPER = process.env.PASSWORD_PEPPER || "";
+
+if (!process.env.PASSWORD_PEPPER && process.env.NODE_ENV === "production") {
+  throw new Error("PASSWORD_PEPPER must be set in production environment variables");
+}
+
 async function hashPassword(password: string): Promise<string> {
-  return argon2.hash(password);
+  return argon2.hash(password + PASSWORD_PEPPER);
 }
 
 async function verifyPassword(password: string, hash: string): Promise<boolean> {
-  return argon2.verify(hash, password);
+  return argon2.verify(hash, password + PASSWORD_PEPPER);
 }
 
 // In production, use a proper secret from environment variables

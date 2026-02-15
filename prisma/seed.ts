@@ -3,6 +3,7 @@ import { PrismaPg } from "@prisma/adapter-pg";
 
 const DATABASE_URL =
   process.env.DATABASE_URL ?? "postgresql://postgres:postgres@localhost:5432/demo_project";
+const PASSWORD_PEPPER = process.env.PASSWORD_PEPPER || "";
 
 async function main() {
   const adapter = new PrismaPg({ connectionString: DATABASE_URL });
@@ -17,7 +18,7 @@ async function main() {
       data: {
         email: "test@example.com",
         name: "Test User",
-        password: await Bun.password.hash("password123"),
+        password: await Bun.password.hash("password123" + PASSWORD_PEPPER),
       },
     });
     console.log("✅ Created test user:", user.email);

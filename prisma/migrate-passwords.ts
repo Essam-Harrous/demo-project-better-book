@@ -4,6 +4,11 @@ import argon2 from "argon2";
 
 const DATABASE_URL =
   process.env.DATABASE_URL ?? "postgresql://postgres:postgres@localhost:5432/demo_project";
+const PASSWORD_PEPPER = process.env.PASSWORD_PEPPER || "";
+
+if (!process.env.PASSWORD_PEPPER && process.env.NODE_ENV === "production") {
+  throw new Error("PASSWORD_PEPPER must be set in production environment variables");
+}
 
 async function main() {
   const adapter = new PrismaPg({ connectionString: DATABASE_URL });
@@ -24,7 +29,7 @@ async function main() {
       continue;
     }
 
-    const hashedPassword = await argon2.hash(user.password);
+    const hashedPassword = await argon2.hash(user.password + PASSWORD_PEPPER);
     await prisma.user.update({
       where: { id: user.id },
       data: { password: hashedPassword },

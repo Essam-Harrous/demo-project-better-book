@@ -12,7 +12,11 @@
     "typecheck": "tsc --noEmit",
     "generate": "prisma generate",
     "test": "playwright test",
-    "test:ui": "playwright test --ui"
+    "test:ui": "playwright test --ui",
+    "db:seed": "bun prisma/seed.ts"
+  },
+  "prisma": {
+    "seed": "bun prisma/seed.ts"
   },
   "dependencies": {
     "@auth0/auth0-react": "^2.9.0",

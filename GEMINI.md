@@ -1,9 +1,8 @@
+@sessions/GEMINI.sessions.md
 
-@sessions/CLAUDE.sessions.md
+# GEMINI.md
 
-# CLAUDE.md
-
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to Gemini Code when working with code in this repository.
 
 ## Development Commands
 
@@ -116,7 +115,7 @@ This project uses a multi-layered approach to state management:
 - TanStack DevTools panel (bottom-left) includes Router and Query devtools
 - TypeScript path aliases configured (`@/*` maps to `./src/*`)
 - Vite config includes TanStack Start plugin and React plugin
-- You run in an environment where ast-grep is available. Whenever a search requires syntax-aware or structural matching, default to `ast-grep run --lang tsx -p '<pattern>'` (or set lang appropriately) and avoid falling back to text-only tools like `rg` or `grep` unless I explicitly request a plain-text search.
+- You run in an environment where ast-grep is available. Whenever a search requires syntax-aware or structural matching, default to `ast-grep run --lang tsx -p '<pattern>'` (or set lang appropriately) and avoid falling back to text-only tools like `rg` or `grep` unless explicitly requested.
 
 ## Stripe Integration
 
