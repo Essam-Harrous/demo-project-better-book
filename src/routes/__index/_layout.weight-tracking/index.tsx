@@ -8,6 +8,7 @@ import {
   deleteWeightTrackingServerFn,
 } from "@/lib/weight-tracking.server";
 import { Plus, Trash2 } from "lucide-react";
+import { toast } from "react-toastify";
 import { useSuspenseQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { weightTrackingHistoryQueryOptions } from "./-queries/weight-tracking-history";
 import { Chart } from "react-charts";
@@ -34,6 +35,7 @@ function WeightTrackingPage() {
     mutationFn: (data: { weight: number }) => createWeightTrackingServerFn({ data }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: weightTrackingHistoryQueryOptions().queryKey });
+      toast.success("Weight entry added");
       setWeight("");
     },
   });
@@ -42,6 +44,7 @@ function WeightTrackingPage() {
     mutationFn: (id: string) => deleteWeightTrackingServerFn({ data: { weightTrackingIds: [id] } }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: weightTrackingHistoryQueryOptions().queryKey });
+      toast.success("Weight entry deleted");
     },
   });
 
